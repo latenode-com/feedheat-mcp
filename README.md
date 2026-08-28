@@ -12,31 +12,25 @@ Claude Code (или любого MCP-клиента) смотреть клиен
 
 ## Установка
 
-```bash
-cd mcp-server
-uv venv --python 3.13
-uv pip install -e .
-```
+Ставить руками не нужно — MCP-клиент скачает и запустит пакет сам. Нужен только
+[uv](https://docs.astral.sh/uv/) и Python 3.13.
 
-Проверка:
+Проверить, что запускается:
 
 ```bash
-uv run --directory . pytest -q
+FEEDHEAT_API_KEY=fhk_ваш_ключ uvx --from git+https://github.com/latenode-com/feedheat-mcp feedheat-mcp
 ```
+
+Команда молчит и ждёт ввода — так и должно быть: сервер говорит по stdio с клиентом, а не с человеком. Ctrl-C.
 
 ## Ключ
 
-Ключ выпускается под конкретного админа — из консоли бэкенда:
+Ключ выпускается под конкретного админа — в панели: **Настройки → MCP**
+(`/panel/mcp`). Там же лежат готовый конфиг и промт, которым агент настраивает себя сам.
 
-```bash
-cd backend
-uv run python manage.py create_api_key \
-  --username <ваш-админ> --name "mcp laptop" \
-  --scopes orders:read,orders:write --expires-in-days 90
-```
-
-либо по живой сессии через `POST /api/admin/api-keys` (сама выдача ключей ключам
-запрещена — иначе отзыв ничего не решает, скомпрометированный ключ выпишет себе новый).
+Кому ближе консоль — `POST /api/admin/api-keys` по живой сессии. Сама выдача ключей
+ключам запрещена: иначе отзыв ничего не решает, скомпрометированный ключ выпишет себе
+новый.
 
 1. Ключ показывается **один раз** при создании — сохраните его в менеджер паролей.
 2. Ключ отзываемый: `DELETE /api/admin/api-keys/{id}`; после отзыва сервер сразу
@@ -65,11 +59,8 @@ uv run python manage.py create_api_key \
 {
   "mcpServers": {
     "feedheat": {
-      "command": "uv",
-      "args": [
-        "--directory", "/Users/<вы>/Проекты/feedheat-crowd/mcp-server",
-        "run", "feedheat-mcp"
-      ],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/latenode-com/feedheat-mcp", "feedheat-mcp"],
       "env": {
         "FEEDHEAT_API_URL": "https://app2.feedheat.com",
         "FEEDHEAT_API_KEY": "fhk_ваш_ключ"
@@ -79,18 +70,25 @@ uv run python manage.py create_api_key \
 }
 ```
 
-Без `uv` — прямым путём до venv:
+`uvx` каждый запуск сверяется с гитом; чтобы этого не было, поставьте пакет разово и
+пропишите путь до исполняемого файла:
+
+```bash
+uv tool install git+https://github.com/latenode-com/feedheat-mcp
+```
 
 ```json
 {
   "mcpServers": {
     "feedheat": {
-      "command": "/Users/<вы>/Проекты/feedheat-crowd/mcp-server/.venv/bin/feedheat-mcp",
+      "command": "feedheat-mcp",
       "env": { "FEEDHEAT_API_KEY": "fhk_ваш_ключ" }
     }
   }
 }
 ```
+
+Обновляется такой вариант руками: `uv tool upgrade feedheat-mcp`.
 
 ## Подключение к Claude Code
 
@@ -98,13 +96,7 @@ uv run python manage.py create_api_key \
 claude mcp add feedheat \
   -e FEEDHEAT_API_KEY=fhk_ваш_ключ \
   -e FEEDHEAT_API_URL=https://app2.feedheat.com \
-  -- uv --directory /Users/<вы>/Проекты/feedheat-crowd/mcp-server run feedheat-mcp
-```
-
-Проверка руками, без клиента:
-
-```bash
-FEEDHEAT_API_KEY=fhk_... uv run --directory mcp-server python -m feedheat_mcp
+  -- uvx --from git+https://github.com/latenode-com/feedheat-mcp feedheat-mcp
 ```
 
 ## Инструменты
@@ -191,8 +183,13 @@ FEEDHEAT_API_KEY=fhk_... uv run --directory mcp-server python -m feedheat_mcp
 
 ## Разработка
 
+```bash
+git clone https://github.com/latenode-com/feedheat-mcp && cd feedheat-mcp
+uv sync
 ```
-mcp-server/
+
+```
+feedheat-mcp/
 ├── feedheat_mcp/
 │   ├── __init__.py
 │   ├── __main__.py      # python -m feedheat_mcp
@@ -203,8 +200,13 @@ mcp-server/
 ```
 
 ```bash
-uv run --directory mcp-server pytest -q     # тесты
-uv run --directory mcp-server ruff check .  # линт
+uv run pytest -q     # тесты, HTTP замокан — бэкенд не нужен
+uv run ruff check .  # линт
 ```
 
 Локально против дев-бэкенда: `FEEDHEAT_API_URL=http://localhost:8100`.
+
+## Лицензия
+
+Внутренний инструмент FeedHeat. Репозиторий открыт, чтобы сервер можно было поставить
+одной командой, — прав на переиспользование это не даёт.
