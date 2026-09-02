@@ -444,6 +444,11 @@ async def create_order(
     for post); body_mode="brief" means body is a brief and the executor writes the text.
     Comments/replies default to "brief", mass_* to "brief".
 
+    Hyperlinks go inside body as markdown: [anchor text](https://example.com). That is
+    what Reddit renders as a link, and it survives the executor copying the text. Do not
+    put HTML in body — it would be published literally. When body holds a link, the
+    executor is told not to drop it; you do not need to repeat that in instructions.
+
     assigned_executor_id assigns the order personally (use list_executors); leave it
     empty to drop the order into the pool of everyone who has access — check with
     order_candidates() afterwards that the pool is not empty.
