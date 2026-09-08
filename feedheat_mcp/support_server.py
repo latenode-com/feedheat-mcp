@@ -178,6 +178,10 @@ async def propose_reply(body: str, reasoning: str, facts: dict | None = None) ->
     glance whether you read the data or made it up.
 
     Calling this twice replaces your earlier draft rather than adding a second one.
+
+    You may call escalate as well. Answering the part you can answer and handing over
+    the part that needs a decision is not a contradiction — it is usually the best
+    outcome, because the person stops waiting in the dark while a human decides.
     """
     text = (body or '').strip()
     if not text:
@@ -196,6 +200,13 @@ async def escalate(kind: str, reason: str, facts: dict | None = None) -> dict:
     A separate tool on purpose. If refusing were a flag on propose_reply, the easy path
     would always be to fill in the body — and a confident wrong answer sent from our
     address costs more than a delay. Escalating is you working correctly, not failing.
+
+    Escalating does NOT mean staying silent. Before you call this, ask what part of the
+    letter you can answer from the tool results without anyone's permission — a status,
+    a date, a number, a rule. If there is such a part, call propose_reply with it first
+    and then escalate the decision. "I cannot grant what they asked for" is not the same
+    as "I have nothing to tell them", and treating it as the same leaves a person waiting
+    for days over something we already knew.
 
     kind — what kind of decision a person has to make:
       money        pay, refund, credit, waive a threshold, cancel a payout request
