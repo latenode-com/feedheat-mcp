@@ -3,7 +3,7 @@ name = "feedheat-mcp"
 version = "0.1.0"
 description = "FeedHeat Crowd — MCP-сервер администратора (создание заказов исполнителям)"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     # 2.x: MCPServer (бывший FastMCP) живёт в mcp.server.mcpserver — на 1.x код не соберётся
     "mcp>=2.0,<3",
@@ -35,7 +35,7 @@ packages = ["feedheat_mcp"]
 # Стиль тот же, что в остальном коде FeedHeat
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
