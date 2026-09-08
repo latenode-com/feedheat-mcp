@@ -67,9 +67,7 @@ async def test_propose_reply_saves_a_draft_and_says_it_was_not_sent(pinned):
     assert out['sent'] is False
     assert rec.last.method == 'POST'
     assert rec.last.url.path.endswith('/draft')
-    body = rec.json_body()
-    assert body['verdict'] == 'reply'
-    assert body['facts'] == {'availableCents': 300}
+    assert rec.json_body()['facts'] == {'availableCents': 300}
 
 
 async def test_empty_body_is_refused_before_the_network(pinned):
@@ -87,20 +85,32 @@ async def test_reply_without_reasoning_is_refused(pinned):
     assert rec.calls == 0
 
 
-async def test_escalate_is_a_separate_path(pinned):
-    rec = use_client(json_response({'draftId': 'd2', 'status': 'pending',
-                                    'verdict': 'escalate'}))
-    out = await sup.escalate(reason='просит вернуть деньги, нужен человек')
+async def test_escalate_goes_to_the_human_queue_not_the_drafts(pinned):
+    """Отказ отвечать — отдельный путь и отдельная таблица.
+
+    Если бы он был флагом на черновике, «требует человека» лежало бы в одном
+    списке с «прочитай и нажми отправить».
+    """
+    rec = use_client(json_response({'itemId': 'i1', 'kind': 'money', 'status': 'open'}))
+    out = await sup.escalate(kind='money', reason='просит вернуть деньги')
     assert out['sent'] is False
-    assert rec.json_body()['verdict'] == 'escalate'
-    assert rec.json_body()['body'] == ''
+    assert rec.last.url.path.endswith('/attention')
+    assert rec.json_body()['kind'] == 'money'
 
 
 async def test_escalate_needs_a_reason(pinned):
     rec = use_client(json_response({}))
     with pytest.raises(ToolError):
-        await sup.escalate(reason='  ')
+        await sup.escalate(kind='unclear', reason='  ')
     assert rec.calls == 0
+
+
+async def test_escalate_carries_the_facts_it_did_establish(pinned):
+    """Даже отдав задачу человеку, агент экономит ему поиск."""
+    rec = use_client(json_response({'itemId': 'i2', 'kind': 'decision', 'status': 'open'}))
+    await sup.escalate(kind='decision', reason='спорит с отказом',
+                       facts={'orderId': 'abc', 'availableCents': 300})
+    assert rec.json_body()['facts'] == {'orderId': 'abc', 'availableCents': 300}
 
 
 async def test_run_label_travels_with_the_draft(pinned, monkeypatch):
