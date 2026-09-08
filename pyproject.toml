@@ -16,6 +16,7 @@ Issues = "https://github.com/latenode-com/feedheat-mcp/issues"
 
 [project.scripts]
 feedheat-mcp = "feedheat_mcp.server:main"
+feedheat-support-mcp = "feedheat_mcp.support_server:main"
 
 [dependency-groups]
 dev = [

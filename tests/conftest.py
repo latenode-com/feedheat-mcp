@@ -78,3 +78,15 @@ def _reset_server_client():
     srv.set_client(None)
     yield
     srv.set_client(None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_support_client(monkeypatch: pytest.MonkeyPatch):
+    """То же для сервера поддержки, плюс прибитый тред: без него тесты бессмысленны."""
+    from feedheat_mcp import support_server as sup
+
+    sup.set_client(None)
+    monkeypatch.delenv('FEEDHEAT_THREAD_ID', raising=False)
+    monkeypatch.delenv('FEEDHEAT_RUN_LABEL', raising=False)
+    yield
+    sup.set_client(None)
