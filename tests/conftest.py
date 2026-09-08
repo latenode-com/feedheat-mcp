@@ -90,3 +90,13 @@ def _reset_support_client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('FEEDHEAT_RUN_LABEL', raising=False)
     yield
     sup.set_client(None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_review_client(monkeypatch: pytest.MonkeyPatch):
+    from feedheat_mcp import review_server as rev
+
+    rev.set_client(None)
+    monkeypatch.delenv('FEEDHEAT_ASSIGNMENT_ID', raising=False)
+    yield
+    rev.set_client(None)
