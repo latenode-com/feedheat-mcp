@@ -213,8 +213,22 @@ uv run ruff check .  # линт
 пул-реквесты в зеркало уедут при следующей синхронизации:
 
 ```bash
-git subtree push --prefix=mcp-server https://github.com/latenode-com/feedheat-mcp.git main
+git subtree push --prefix=mcp-server git@github.com-latenode:latenode-com/feedheat-mcp.git main
 ```
+
+Синхронизация — обязательный шаг любой правки сервера, а не уборка на потом.
+Ставится пакет ОТСЮДА, поэтому до публикации люди получают предыдущую версию:
+изменённый инструмент ведёт себя по-старому, а новый entry point не находится
+вовсе. В CI шага нет — зеркало в другом аккаунте.
+
+Проверка, что опубликованное действительно ставится:
+
+```bash
+FEEDHEAT_API_KEY=fhk_fake uvx --from "git+https://github.com/latenode-com/feedheat-mcp" feedheat-client-mcp </dev/null
+```
+
+Код 0 — пакет собрался и entry point на месте (пустой stdin закрывает сервер
+сразу). Ошибка про неизвестную команду — зеркало отстало.
 
 ## Лицензия
 
