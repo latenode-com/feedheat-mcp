@@ -62,7 +62,7 @@ def _hint_for(status: int, scope: str | None) -> str:
             'user status and processing payouts are admin-UI only by design. Do not retry.'
         )
     if status == 404:
-        return 'Check the id — list_clients / list_executors / list_orders return current ids.'
+        return 'Check the id — the listing tools on this server return current ids.'
     if status == 409:
         return 'The object is in a state that forbids this action (e.g. order already opened).'
     if status == 429:
@@ -266,4 +266,62 @@ class AdminClient:
         # Отмена живёт в общем роутере заказов (её умеет и заказчик), а не в /admin.
         return await self.request(
             'POST', f'/api/orders/{order_id}/cancel', json={}, scope='orders:write',
+        )
+
+
+class CustomerClient(AdminClient):
+    """Тот же транспорт, но ручки — клиентские (/api/orders, /api/projects).
+
+    Отдельным классом, а не набором методов в AdminClient, по одной причине:
+    ключ заказчика физически не может позвать /api/admin/* (роль не та), и
+    сервер, который ими не владеет, не должен их и уметь. Список методов здесь —
+    это и есть граница того, что клиентский MCP вообще способен сделать.
+
+    Сужения по учётке тут нет и быть не может: его делает бэкенд через
+    workspace_owner_id. Подставить чужой customerId в параметрах нельзя —
+    клиентская ветка /api/orders его не читает.
+    """
+
+    READ = 'client:read'
+    WRITE = 'client:write'
+
+    async def projects(self) -> list[dict]:
+        return await self.request('GET', '/api/projects/', scope=self.READ)
+
+    async def orders(self, *, status: str | None = None) -> list[dict]:
+        return await self.request(
+            'GET', '/api/orders/', params={'status': status}, scope=self.READ,
+        )
+
+    async def order(self, order_id: str) -> dict:
+        return await self.request('GET', f'/api/orders/{order_id}', scope=self.READ)
+
+    async def metrics_summary(self, *, days: int | None = None,
+                              project_id: str | None = None) -> dict:
+        return await self.request(
+            'GET', '/api/orders/metrics-summary',
+            params={'days': days, 'projectId': project_id}, scope=self.READ,
+        )
+
+    async def create_order(self, payload: dict) -> dict:
+        return await self.request('POST', '/api/orders/', json=payload, scope=self.WRITE)
+
+    async def update_order(self, order_id: str, payload: dict) -> dict:
+        return await self.request(
+            'PATCH', f'/api/orders/{order_id}', json=payload, scope=self.WRITE,
+        )
+
+    async def publish_order(self, order_id: str) -> dict:
+        return await self.request(
+            'POST', f'/api/orders/{order_id}/publish', json={}, scope=self.WRITE,
+        )
+
+    async def cancel_order(self, order_id: str) -> dict:
+        return await self.request(
+            'POST', f'/api/orders/{order_id}/cancel', json={}, scope=self.WRITE,
+        )
+
+    async def unpublish_order(self, order_id: str) -> dict:
+        return await self.request(
+            'POST', f'/api/orders/{order_id}/unpublish', json={}, scope=self.WRITE,
         )

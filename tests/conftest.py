@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
-from feedheat_mcp.client import AdminClient
+from feedheat_mcp.client import AdminClient, CustomerClient
 
 TEST_KEY = 'fhk_secret_test_key_do_not_leak'
 TEST_URL = 'https://app2.example.test'
@@ -47,6 +47,22 @@ def make_client(
         api_key=kwargs.pop('api_key', TEST_KEY),
         transport=httpx.MockTransport(recorder),
         retry_backoff=0.0,  # тесты не спят
+        **kwargs,
+    )
+    return client, recorder
+
+
+def make_customer_client(
+    handler: Callable[[httpx.Request], httpx.Response],
+    **kwargs: Any,
+) -> tuple[CustomerClient, Recorder]:
+    """То же, но клиентский транспорт: ключ заказчика ходит в /api/orders."""
+    recorder = Recorder(handler)
+    client = CustomerClient(
+        base_url=kwargs.pop('base_url', TEST_URL),
+        api_key=kwargs.pop('api_key', TEST_KEY),
+        transport=httpx.MockTransport(recorder),
+        retry_backoff=0.0,
         **kwargs,
     )
     return client, recorder
@@ -100,3 +116,12 @@ def _reset_review_client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('FEEDHEAT_ASSIGNMENT_ID', raising=False)
     yield
     rev.set_client(None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_client_server():
+    from feedheat_mcp import client_server as cli
+
+    cli.set_client(None)
+    yield
+    cli.set_client(None)
