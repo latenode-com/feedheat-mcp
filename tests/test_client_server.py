@@ -23,6 +23,16 @@ def use_client(handler):
     return rec
 
 
+def routed(orders, projects=None):
+    """Разный ответ на /api/orders/ и /api/projects/ — как у живого бэкенда."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == '/api/projects/':
+            return httpx.Response(200, json=projects if projects is not None else [])
+        return httpx.Response(200, json=orders)
+
+    return handler
+
+
 def an_order(**over):
     base = {
         'id': ORDER, 'type': 'comment', 'status': 'completed',
@@ -53,18 +63,21 @@ def test_no_tool_accepts_a_customer_id():
 
 
 async def test_reads_hit_client_endpoints():
-    rec = use_client(json_response([]))
+    rec = use_client(routed([]))
     await cli.projects()
     assert rec.last.url.path == '/api/projects/'
     await cli.orders()
-    assert rec.last.url.path == '/api/orders/'
+    # orders() ходит за списком заказов и за именами проектов — второе нужно,
+    # чтобы колонка «проект» не была пустой (см. _project_names).
+    paths = {r.url.path for r in rec.requests}
+    assert paths == {'/api/projects/', '/api/orders/'}
 
 
 # --- Статусы и счёт ---------------------------------------------------------
 
 async def test_live_counts_retention_as_published():
     """retention — это уже опубликованный контент, и в отчёт он идёт как сделанный."""
-    rec = use_client(json_response([
+    use_client(json_response([
         an_order(status='completed'),
         an_order(status='retention', metrics={'score': 5, 'numComments': 1}),
         an_order(status='open', publishedAt=None, metrics=None),
@@ -72,7 +85,6 @@ async def test_live_counts_retention_as_published():
         an_order(status='draft', publishedAt=None, metrics=None),
     ]))
     out = await cli.orders()
-    assert rec.calls == 1
     assert out['summary'] == {
         'orders': 5, 'live': 2, 'inWork': 1, 'open': 1, 'draft': 1,
         'upvotes': 17, 'comments': 4,
@@ -80,9 +92,33 @@ async def test_live_counts_retention_as_published():
 
 
 async def test_status_filter_goes_to_the_server():
-    rec = use_client(json_response([]))
+    rec = use_client(routed([]))
     await cli.orders(status='open')
-    assert dict(rec.last.url.params) == {'status': 'open'}
+    orders_call = next(r for r in rec.requests if r.url.path == '/api/orders/')
+    assert dict(orders_call.url.params) == {'status': 'open'}
+
+
+async def test_project_name_comes_from_the_projects_list():
+    """Клиенту заказ приходит без брифа проекта — только projectId. Имя
+    подставляем сами, иначе колонка «проект» в отчёте пустая."""
+    use_client(routed(
+        [an_order(project=None, projectId=PROJECT)],
+        projects=[{'id': PROJECT, 'name': 'WinSpirit'}],
+    ))
+    out = await cli.orders()
+    assert out['orders'][0]['project'] == 'WinSpirit'
+    assert out['orders'][0]['projectId'] == PROJECT
+
+
+async def test_project_filter_works_without_the_embedded_brief():
+    use_client(routed(
+        [an_order(project=None, projectId=PROJECT),
+         an_order(project=None, projectId='other-id')],
+        projects=[{'id': PROJECT, 'name': 'WinSpirit'},
+                  {'id': 'other-id', 'name': 'Revenue Grid'}],
+    ))
+    out = await cli.orders(project='winspirit')
+    assert [r['project'] for r in out['orders']] == ['WinSpirit']
 
 
 async def test_project_filter_is_partial_and_case_insensitive():

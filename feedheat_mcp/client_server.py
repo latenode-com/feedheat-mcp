@@ -124,15 +124,29 @@ def _at(value: str | None) -> datetime | None:
         return None
 
 
-def _row(order: dict) -> dict:
+async def _project_names() -> dict[str, str]:
+    """id проекта → его имя.
+
+    Нужна потому, что клиенту список заказов приходит компактным: в нём есть
+    projectId, а брифа проекта нет вовсе (orders/api.py, compact=True). Без
+    этой карты колонка «проект» в отчёте и фильтр по проекту оставались бы
+    пустыми — то есть главное, ради чего агентство и берёт выгрузку.
+    """
+    data = await _call(get_client().projects())
+    return {str(p.get('id')): (p.get('name') or '') for p in data or []}
+
+
+def _row(order: dict, names: dict[str, str] | None = None) -> dict:
     """Одна строка отчёта. Собирается здесь, а не на стороне модели: иначе
     каждая выгрузка получалась бы со своим набором колонок."""
     metrics = order.get('metrics') or {}
     published = _at(order.get('publishedAt'))
     project = order.get('project') or {}
+    project_id = str(order.get('projectId') or '')
     return {
         'orderId': order.get('id'),
-        'project': project.get('name') or '',
+        'projectId': project_id,
+        'project': project.get('name') or (names or {}).get(project_id, ''),
         'type': order.get('type') or '',
         'status': order.get('status') or '',
         'live': (order.get('status') in PUBLISHED),
@@ -181,7 +195,8 @@ async def _rows(*, status: str | None, project: str | None, since: str | None,
     if a and b and a > b:
         raise ToolError(f'since ({since}) is after until ({until}).')
     orders = await _call(get_client().orders(status=status))
-    rows = [_row(o) for o in orders or []]
+    names = await _project_names()
+    rows = [_row(o, names) for o in orders or []]
     return [r for r in rows
             if _match(r, project=project, since=a, until=b, date_field=date_field)]
 
@@ -308,7 +323,7 @@ async def order(order_id: str) -> dict:
     if not (order_id or '').strip():
         raise ToolError('order_id is empty.')
     data = await _call(get_client().order(order_id.strip()))
-    row = _row(data)
+    row = _row(data, await _project_names())
     row['body'] = data.get('body') or ''
     row['instructions'] = data.get('instructions') or ''
     row['attempts'] = data.get('attempts') or []
