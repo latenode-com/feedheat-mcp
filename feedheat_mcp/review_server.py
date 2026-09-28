@@ -29,7 +29,7 @@ server = MCPServer(
     name='feedheat-review',
     version='0.1.0',
     instructions=(
-        'You are reviewing ONE submitted task for FeedHeat Crowd, a marketplace where '
+        'You are reviewing ONE submitted task for Taskospot, a marketplace where '
         'people are paid to post and comment on Reddit. Every tool works on that one '
         'submission; there is no way to reach another, and no way to approve anything.\n\n'
         'Work in this order: read_submission, then check_publication when the answer '

@@ -1,10 +1,10 @@
-# FeedHeat Crowd — MCP-сервер администратора
+# Taskospot — MCP-сервер администратора
 
-MCP-сервер поверх админского HTTP API FeedHeat Crowd. Позволяет из Claude Desktop /
+MCP-сервер поверх админского HTTP API Taskospot. Позволяет из Claude Desktop /
 Claude Code (или любого MCP-клиента) смотреть клиентов, проекты и исполнителей —
 и **создавать реальные оплачиваемые заказы** от имени настоящего админского аккаунта.
 
-Транспорт — stdio. Ходит по HTTP на `https://app2.feedheat.com` (или на локальный
+Транспорт — stdio. Ходит по HTTP на `https://taskospot.com` (или на локальный
 `http://localhost:8100`), авторизуется отзываемым API-ключом `fhk_...`.
 
 > Всё, что делает сервер, попадает в аудит-лог платформы под тем админом, чьим ключом
@@ -49,7 +49,7 @@ FEEDHEAT_API_KEY=fhk_ваш_ключ uvx --from git+https://github.com/latenode-
 | Переменная          | По умолчанию                | Смысл                                  |
 |---------------------|-----------------------------|----------------------------------------|
 | `FEEDHEAT_API_KEY`  | — (обязательна)             | Ключ `fhk_...`                         |
-| `FEEDHEAT_API_URL`  | `https://app2.feedheat.com` | Корень API; локально `http://localhost:8100` |
+| `FEEDHEAT_API_URL`  | `https://taskospot.com` | Корень API; локально `http://localhost:8100` |
 
 ## Подключение к Claude Desktop
 
@@ -58,11 +58,11 @@ FEEDHEAT_API_KEY=fhk_ваш_ключ uvx --from git+https://github.com/latenode-
 ```json
 {
   "mcpServers": {
-    "feedheat": {
+    "taskospot": {
       "command": "uvx",
       "args": ["--from", "git+https://github.com/latenode-com/feedheat-mcp", "feedheat-mcp"],
       "env": {
-        "FEEDHEAT_API_URL": "https://app2.feedheat.com",
+        "FEEDHEAT_API_URL": "https://taskospot.com",
         "FEEDHEAT_API_KEY": "fhk_ваш_ключ"
       }
     }
@@ -80,7 +80,7 @@ uv tool install git+https://github.com/latenode-com/feedheat-mcp
 ```json
 {
   "mcpServers": {
-    "feedheat": {
+    "taskospot": {
       "command": "feedheat-mcp",
       "env": { "FEEDHEAT_API_KEY": "fhk_ваш_ключ" }
     }
@@ -93,9 +93,9 @@ uv tool install git+https://github.com/latenode-com/feedheat-mcp
 ## Подключение к Claude Code
 
 ```bash
-claude mcp add feedheat \
+claude mcp add taskospot \
   -e FEEDHEAT_API_KEY=fhk_ваш_ключ \
-  -e FEEDHEAT_API_URL=https://app2.feedheat.com \
+  -e FEEDHEAT_API_URL=https://taskospot.com \
   -- uvx --from git+https://github.com/latenode-com/feedheat-mcp feedheat-mcp
 ```
 
@@ -232,5 +232,5 @@ FEEDHEAT_API_KEY=fhk_fake uvx --from "git+https://github.com/latenode-com/feedhe
 
 ## Лицензия
 
-Внутренний инструмент FeedHeat. Репозиторий открыт, чтобы сервер можно было поставить
+Внутренний инструмент Taskospot. Репозиторий открыт, чтобы сервер можно было поставить
 одной командой, — прав на переиспользование это не даёт.

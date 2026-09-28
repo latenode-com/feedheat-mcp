@@ -1,4 +1,4 @@
-# MCP-сервер администратора FeedHeat Crowd.
+# MCP-сервер администратора Taskospot.
 # Публичная поверхность пакета: клиент API + собранный MCP-сервер.
 from feedheat_mcp.client import AdminClient, ApiError, ConfigError
 

@@ -1,4 +1,4 @@
-# MCP-сервер поддержки FeedHeat: один разговор, четыре чтения, одно предложение.
+# MCP-сервер поддержки Taskospot: один разговор, четыре чтения, одно предложение.
 #
 # Отличие от админского сервера в этом же пакете принципиальное. Тот работает от
 # имени человека, который знает, что делает. Этот — от имени автомата, который
@@ -34,7 +34,7 @@ server = MCPServer(
     name='feedheat-support',
     version='0.1.0',
     instructions=(
-        'You are answering ONE support conversation for FeedHeat Crowd, a marketplace where '
+        'You are answering ONE support conversation for Taskospot, a marketplace where '
         'people get paid to post and comment on Reddit. Every tool here works on that one '
         'conversation; there is no way to reach another one, and no way to send mail.\n\n'
         'Work in this order: read_conversation, then who_wrote_us and their_work when the '

@@ -1,4 +1,4 @@
-# MCP-сервер администратора FeedHeat Crowd: чтение справочников и создание заказов
+# MCP-сервер администратора Taskospot: чтение справочников и создание заказов
 # исполнителям от имени реального админского аккаунта (по API-ключу fhk_...).
 #
 # Почему инструменты, а не «дай мне HTTP» одной ручкой: модель должна видеть единицы
@@ -37,7 +37,7 @@ server = MCPServer(
     name='feedheat-admin',
     version='0.1.0',
     instructions=(
-        'Admin access to FeedHeat Crowd (Reddit promotion marketplace) on behalf of a real '
+        'Admin access to Taskospot (Reddit promotion marketplace) on behalf of a real '
         'admin account. Read tools are free to call. Write tools create real, paid work for '
         'real people: always resolve ids with the read tools first, and never invent a UUID. '
         'All money is in CENTS (reward_cents=500 means $5.00).'
@@ -208,7 +208,7 @@ def _reward_warnings(reward_cents: int, *, per_what: str) -> list[str]:
 
 @server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True))
 async def list_clients(include_projects: bool = True) -> dict:
-    """List FeedHeat customers (clients) with their projects and order counts.
+    """List Taskospot customers (clients) with their projects and order counts.
 
     Use this first: create_order needs a customer_id, and almost always a project_id
     (the project carries the product brief). Both are UUIDs returned here.
@@ -216,7 +216,7 @@ async def list_clients(include_projects: bool = True) -> dict:
     include_projects=True costs one extra request per client; set it to False when you
     only need the list of clients or there are many of them.
 
-    Does NOT return money the client paid to FeedHeat, contracts, or contact history.
+    Does NOT return money the client paid to Taskospot, contracts, or contact history.
     """
     client = get_client()
     rows = await client.get_customers()

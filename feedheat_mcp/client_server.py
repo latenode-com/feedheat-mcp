@@ -35,8 +35,8 @@ server = MCPServer(
     name='feedheat-client',
     version='0.1.0',
     instructions=(
-        'You work on ONE FeedHeat Crowd account: the company that owns the API key. '
-        'FeedHeat is a marketplace where people are paid to post and comment on Reddit '
+        'You work on ONE Taskospot account: the company that owns the API key. '
+        'Taskospot is a marketplace where people are paid to post and comment on Reddit '
         'for that company. Every tool here returns that account\'s own projects and '
         'orders — there is no way to reach another company\'s data, and no parameter '
         'that would name one.\n\n'
@@ -212,7 +212,7 @@ async def projects() -> list[dict]:
     exist. targetSubreddits is where that project is meant to be posted.
 
     Monthly targets and commitments are deliberately not part of this: they live
-    with your FeedHeat manager, not in the API.
+    with your Taskospot manager, not in the API.
     """
     data = await _call(get_client().projects())
     return [
@@ -363,7 +363,7 @@ async def create_order(project_id: str, type: str, subreddit: str = '',
     money is committed. Pass it only when you were asked to publish, not to
     "save time". Otherwise create the draft and let a person look at it.
 
-    The rate paid to the writer comes from your agreement with FeedHeat and is
+    The rate paid to the writer comes from your agreement with Taskospot and is
     applied automatically — there is no price field here and nothing to set.
     """
     kind = (type or '').strip()
@@ -400,7 +400,7 @@ async def publish_order(order_id: str) -> dict:
     """Send a draft out to be worked on. This is what commits the money.
 
     The order does not go straight to writers: it lands in review first (status
-    becomes pending), and a FeedHeat moderator opens it to the pool. So "published"
+    becomes pending), and a Taskospot moderator opens it to the pool. So "published"
     here means "submitted", and the same day it usually becomes open.
 
     Only draft and needs_revision orders can be sent; anything further along

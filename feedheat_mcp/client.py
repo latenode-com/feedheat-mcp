@@ -1,4 +1,4 @@
-# Тонкая обёртка над админским HTTP API FeedHeat Crowd (Django Ninja).
+# Тонкая обёртка над админским HTTP API Taskospot (Django Ninja).
 #
 # Здесь нет бизнес-логики: только транспорт, заголовки, ретраи и перевод ошибок
 # бэкенда в человекочитаемый текст. Логика «что и когда звать» живёт в server.py,
@@ -13,7 +13,7 @@ from typing import Any
 
 import httpx
 
-DEFAULT_BASE_URL = 'https://app2.feedheat.com'
+DEFAULT_BASE_URL = 'https://taskospot.com'
 # 12с: генерации/скрапинга здесь нет, все ручки — обычные CRUD-запросы. Больше ждать
 # смысла нет, MCP-клиент всё равно упрётся в собственный таймаут.
 DEFAULT_TIMEOUT = 12.0
@@ -51,7 +51,7 @@ def _hint_for(status: int, scope: str | None) -> str:
     if status == 401:
         return (
             'The API key was not accepted: it is revoked, expired, or FEEDHEAT_API_KEY holds a '
-            'wrong value. This cannot be fixed from here — ask a FeedHeat admin to issue a new key '
+            'wrong value. This cannot be fixed from here — ask a Taskospot admin to issue a new key '
             'and restart the MCP server. Do not retry.'
         )
     if status == 403:
@@ -92,7 +92,7 @@ class AdminClient:
         if not key:
             raise ConfigError(
                 'FEEDHEAT_API_KEY is not set. Add it to the MCP server config (env) — '
-                'the key looks like fhk_... and is issued in the FeedHeat admin panel.'
+                'the key looks like fhk_... and is issued in the Taskospot admin panel.'
             )
         if not url.startswith(('http://', 'https://')):
             raise ConfigError(f'FEEDHEAT_API_URL must start with http:// or https://, got: {url!r}')

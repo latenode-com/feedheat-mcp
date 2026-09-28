@@ -1,7 +1,7 @@
 [project]
 name = "feedheat-mcp"
 version = "0.1.0"
-description = "FeedHeat Crowd — MCP-сервер администратора (создание заказов исполнителям)"
+description = "Taskospot — MCP-сервер администратора (создание заказов исполнителям)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -34,7 +34,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["feedheat_mcp"]
 
-# Стиль тот же, что в остальном коде FeedHeat
+# Стиль тот же, что в остальном коде Taskospot
 [tool.ruff]
 line-length = 100
 target-version = "py312"
