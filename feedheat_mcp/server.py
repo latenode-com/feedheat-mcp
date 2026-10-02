@@ -22,7 +22,7 @@ from feedheat_mcp.client import AdminClient, ApiError, ConfigError
 OrderType = Literal['post', 'comment', 'reply', 'mass_comment', 'mass_post']
 BodyMode = Literal['text', 'brief']
 OrderStatus = Literal[
-    'draft', 'pending', 'open', 'claimed', 'submitted', 'needs_revision',
+    'draft', 'pending', 'holding', 'open', 'claimed', 'submitted', 'needs_revision',
     'retention', 'completed', 'cancelled',
 ]
 
@@ -669,8 +669,8 @@ async def assign_order(
     open_to_everyone=True (only with an empty executor_ids) exposes the order to EVERY
     active executor on the platform, ignoring per-client access grants. Use sparingly.
 
-    Works only while the order is draft / pending / open — an order already claimed or
-    submitted cannot be reassigned here. Does not change the reward.
+    Works only while the order is draft / pending / holding / open — an order already
+    claimed or submitted cannot be reassigned here. Does not change the reward.
     """
     oid = _uuid_str(order_id, 'order_id')
     ids = [_uuid_str(x, 'executor_ids[]') for x in (executor_ids or [])]
@@ -689,13 +689,15 @@ async def assign_order(
     read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True,
 ))
 async def open_order(order_id: str) -> dict:
-    """Publish an admin draft: draft -> open. The order becomes claimable immediately.
+    """Send a draft or holding order to the pool: draft|holding -> open.
 
-    Use it after create_order(as_draft=True) once the text has been reviewed. From this
-    moment the order can be picked up and paid for.
+    Use it after create_order(as_draft=True) once the text has been reviewed, or after
+    a client order was moderated to "holding" (on hold / передержка). From this moment
+    the order can be picked up and paid for.
 
-    Only works on orders in status "draft"; anything else returns a 409. Cancelling a
-    published order is not available through this MCP server — use the admin panel.
+    Only works on orders in status "draft" or "holding"; anything else returns a 409.
+    Cancelling a published order is not available through this MCP server — use the
+    admin panel.
     """
     oid = _uuid_str(order_id, 'order_id')
     order = await get_client().open_order(oid)
@@ -714,7 +716,7 @@ async def cancel_order(order_id: str, confirm: bool = False) -> dict:
     Read the status in the preview before confirming, and if it is claimed, tell the
     human that a live person is affected.
 
-    Cancellable statuses (admin): draft, pending, open, needs_revision, claimed.
+    Cancellable statuses (admin): draft, pending, holding, open, needs_revision, claimed.
     NOT cancellable: submitted (a proof is waiting for review — review or reject it
     instead), retention, completed, and an order already cancelled. The backend rejects
     those with a 409 that names the current status.
