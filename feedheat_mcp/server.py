@@ -17,7 +17,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
-from feedheat_mcp.client import AdminClient, ApiError, ConfigError
+from feedheat_mcp.client import REQUEST_KEY, AdminClient, ApiError, ConfigError, keyed_client
 
 OrderType = Literal['post', 'comment', 'reply', 'mass_comment', 'mass_post']
 BodyMode = Literal['text', 'brief']
@@ -57,6 +57,12 @@ def get_client() -> AdminClient:
     # Ленивая инициализация: без ключа сервер обязан подняться и объяснить проблему
     # в ответе на вызов инструмента, а не падать на старте до MCP-хендшейка.
     global _client
+    key = REQUEST_KEY.get()
+    if key and _client is None:
+        try:
+            return keyed_client(AdminClient, key)
+        except ConfigError as exc:
+            raise ToolError(str(exc)) from None
     if _client is None:
         try:
             _client = AdminClient()

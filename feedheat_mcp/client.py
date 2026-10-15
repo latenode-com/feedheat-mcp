@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections import OrderedDict
+from contextvars import ContextVar
 from typing import Any
 
 import httpx
@@ -22,6 +24,13 @@ GET_ATTEMPTS = 3
 RETRY_STATUSES = frozenset({429, 502, 503, 504})
 
 USER_AGENT = 'feedheat-mcp/0.1'
+
+# Сетевой режим (feedheat_mcp.http): один процесс обслуживает всех, и ключ
+# приходит в заголовке каждого запроса, а не из окружения процесса. Пусто —
+# обычный локальный запуск, ключ из FEEDHEAT_API_KEY.
+REQUEST_KEY: ContextVar[str] = ContextVar('feedheat_request_key', default='')
+_KEYED: OrderedDict = OrderedDict()
+_KEYED_MAX = 256
 
 
 class ConfigError(Exception):
@@ -325,3 +334,19 @@ class CustomerClient(AdminClient):
         return await self.request(
             'POST', f'/api/orders/{order_id}/unpublish', json={}, scope=self.WRITE,
         )
+
+
+def keyed_client(cls: type, key: str):
+    """Клиент под ключ из запроса: один на ключ, чтобы не открывать соединение
+    к API на каждый вызов. Старые вытесняются — ключей бывает много, а держать
+    httpx-клиент на каждый когда-то пришедший незачем."""
+    k = (cls, key)
+    client = _KEYED.get(k)
+    if client is None:
+        client = cls(api_key=key)
+        _KEYED[k] = client
+        while len(_KEYED) > _KEYED_MAX:
+            _KEYED.popitem(last=False)
+    else:
+        _KEYED.move_to_end(k)
+    return client

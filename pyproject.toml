@@ -19,6 +19,7 @@ feedheat-mcp = "feedheat_mcp.server:main"
 feedheat-support-mcp = "feedheat_mcp.support_server:main"
 feedheat-review-mcp = "feedheat_mcp.review_server:main"
 feedheat-client-mcp = "feedheat_mcp.client_server:main"
+feedheat-mcp-http = "feedheat_mcp.http:main"
 
 [dependency-groups]
 dev = [

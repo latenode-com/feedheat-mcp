@@ -29,7 +29,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
-from feedheat_mcp.client import ApiError, ConfigError, CustomerClient
+from feedheat_mcp.client import REQUEST_KEY, ApiError, ConfigError, CustomerClient, keyed_client
 
 server = MCPServer(
     name='feedheat-client',
@@ -71,6 +71,12 @@ def set_client(client: CustomerClient | None) -> None:
 
 def get_client() -> CustomerClient:
     global _client
+    key = REQUEST_KEY.get()
+    if key and _client is None:
+        try:
+            return keyed_client(CustomerClient, key)
+        except ConfigError as exc:
+            raise ToolError(str(exc)) from None
     if _client is None:
         try:
             _client = CustomerClient()
