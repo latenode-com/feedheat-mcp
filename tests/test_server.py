@@ -321,7 +321,39 @@ async def test_order_candidates_warns_when_nobody_is_in_scope():
     use_client(json_response({'executorIds': [], 'executors': []}))
     result = await srv.order_candidates(ORDER)
     assert result['count'] == 0
+    assert result['assigned'] is False
     assert 'cannot be claimed' in result['note']
+
+
+POOL = [{'id': f'p{i}', 'username': f'p{i}', 'displayName': f'P{i}'} for i in range(3)]
+
+
+async def test_assigned_order_lists_only_the_assignees():
+    """Эксклюзивный заказ: пул в ответе API есть, но взять может только закреплённый."""
+    use_client(json_response({
+        'executorIds': [p['id'] for p in POOL], 'executors': POOL, 'assigned': True,
+        'assignees': [{'id': EXECUTOR, 'username': 'hey', 'displayName': 'hey'}],
+    }))
+    result = await srv.order_candidates(ORDER)
+    assert result['assigned'] is True
+    assert result['count'] == 1
+    assert result['executors'][0]['id'] == EXECUTOR
+    assert 'only these executors' in result['note']
+
+
+async def test_assigned_to_inactive_people_means_nobody():
+    use_client(json_response({'executorIds': [p['id'] for p in POOL], 'executors': POOL,
+                              'assigned': True, 'assignees': []}))
+    result = await srv.order_candidates(ORDER)
+    assert result['count'] == 0
+    assert 'nobody can claim' in result['note']
+
+
+async def test_old_backend_without_the_field_answers_with_the_pool():
+    use_client(json_response({'executorIds': [p['id'] for p in POOL], 'executors': POOL}))
+    result = await srv.order_candidates(ORDER)
+    assert result['assigned'] is False
+    assert result['count'] == 3
 
 
 async def test_open_order_hits_the_open_endpoint():

@@ -372,29 +372,42 @@ async def get_order(order_id: str) -> dict:
 
 @server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True))
 async def order_candidates(order_id: str) -> dict:
-    """List executors who can already see this order in the pool (access-wise).
+    """List executors who can claim this order right now (access-wise).
 
-    This is the exact answer to "who can pick this up": it accounts for the whole
-    access cascade — per-project access, per-client grants, "open to everyone" flags
-    and executors who see all tasks. An empty list means nobody can claim the order;
-    assign it explicitly with assign_order() or widen the access in the admin panel.
+    This is the exact answer to "who can pick this up". An order assigned to
+    specific executors (assign_order(), or a client's exclusive executor) can be
+    claimed only by them — assigned=true and the list holds just the active
+    assignees, the pool does not apply. Otherwise the list is the pool: the whole
+    access cascade — per-project access, per-client grants, "open to everyone"
+    flags and executors who see all tasks. An empty list means nobody can claim
+    the order; assign it with assign_order() or widen the access in the admin panel.
 
     Does NOT change anything and does NOT tell who is going to take it.
     """
     oid = _uuid_str(order_id, 'order_id')
     data = await get_client().get_order_candidates(oid)
-    people = data.get('executors') or []
+    # Закреплённый заказ берут только закреплённые: пул в ответе API — для окна
+    # назначения в админке, а не ответ на «кто возьмёт» (15.10: «5747 кандидатов»
+    # на эксклюзивный заказ, который мог взять один человек).
+    assigned = bool(data.get('assigned'))
+    people = (data.get('assignees') if assigned else data.get('executors')) or []
+    if people:
+        note = ('Assigned order: only these executors can claim it, the pool does not apply.'
+                if assigned else '')
+    elif assigned:
+        note = ('Assigned to executors who are not active — nobody can claim it right now. '
+                'Reassign it with assign_order().')
+    else:
+        note = 'Nobody is in scope — this order cannot be claimed by anyone right now.'
     return {
         'orderId': oid,
+        'assigned': assigned,
         'count': len(people),
         'executors': [
             {'id': e.get('id'), 'name': e.get('displayName'), 'username': e.get('username')}
             for e in people
         ],
-        'note': (
-            'Nobody is in scope — this order cannot be claimed by anyone right now.'
-            if not people else ''
-        ),
+        'note': note,
     }
 
 
