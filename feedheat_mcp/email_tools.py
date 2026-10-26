@@ -14,7 +14,18 @@ from mcp.types import ToolAnnotations
 from feedheat_mcp.server import get_client, server
 
 CampaignStatus = Literal['draft', 'scheduled', 'sending', 'sent', 'paused', 'cancelled']
-Trigger = Literal['manual', 'schedule']
+Trigger = Literal[
+    'manual',
+    'schedule',
+    'new_task_available',
+    'executor_idle',
+    'order_status',
+    'assignment_claimed',
+    'assignment_released',
+    'user_registered',
+    'email_verified',
+    'user_approved',
+]
 
 COHORT_DOC = (
     'Cohort is a JSON filter over users. Supported keys: role (default executor), '
@@ -22,6 +33,24 @@ COHORT_DOC = (
     'executors), created_after/before, last_login_after/before, last_claim_after/'
     'before, never_claimed, has_assignments, project_id, user_ids, exclude_user_ids, '
     'emails, limit. Unknown keys are rejected.'
+)
+
+TRIGGER_DOC = (
+    'Triggers: '
+    'manual (send tool only); '
+    'schedule (schedule_at and/or 5-field cron; runner every minute); '
+    'new_task_available (order becomes open; optional trigger_config: '
+    'min_reward_cents, project_ids, order_types); '
+    'executor_idle (scanner; required trigger_config.days_idle, optional '
+    'never_claimed_counts); '
+    'order_status (required trigger_config.to statuses + audience '
+    'customer|executor|both); '
+    'assignment_claimed; '
+    'assignment_released (optional reasons: released|expired|cancelled); '
+    'user_registered; email_verified; user_approved. '
+    'Event triggers stay armed (status=scheduled) after partial sends; '
+    'Delivery (campaign,user) is once-per-user. Arm with '
+    'schedule_email_campaign(confirm=true) — no schedule_at for events.'
 )
 
 
@@ -54,7 +83,7 @@ async def list_email_campaigns(
     read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True,
 ))
 async def get_email_campaign(campaign_id: str) -> dict:
-    """Full email campaign: subject, html, cohort, trigger, schedule, send counts."""
+    """Full email campaign: subject, html, cohort, trigger, triggerConfig, schedule, counts."""
     return await get_client().get_email_campaign(_uuid(campaign_id, 'campaign_id'))
 
 
@@ -68,6 +97,7 @@ async def create_email_campaign(
     text_body: str = '',
     cohort: dict[str, Any] | None = None,
     trigger: Trigger = 'manual',
+    trigger_config: dict[str, Any] | None = None,
     schedule_at: str | None = None,
     cron: str = '',
     timezone: str = 'UTC',
@@ -76,6 +106,7 @@ async def create_email_campaign(
 
     HTML may use placeholders: {{{{name}}}}, {{{{email}}}}, {{{{username}}}}, {{{{unsubscribe_url}}}}.
     {COHORT_DOC}
+    {TRIGGER_DOC}
     """
     if not (name or '').strip():
         raise ToolError('name is required')
@@ -86,6 +117,7 @@ async def create_email_campaign(
         'textBody': text_body or '',
         'cohort': cohort or {},
         'trigger': trigger,
+        'triggerConfig': trigger_config or {},
         'scheduleAt': schedule_at,
         'cron': cron or '',
         'timezone': timezone or 'UTC',
@@ -97,7 +129,8 @@ async def create_email_campaign(
         'note': (
             'Draft only — nothing was emailed. Edit with update_email_campaign, check '
             'audience with preview_email_campaign_audience, then schedule_email_campaign '
-            'or send_email_campaign (both need confirm=true).'
+            '(arms event triggers or sets cron/schedule_at) or send_email_campaign '
+            '(both need confirm=true).'
         ),
     }
 
@@ -113,15 +146,17 @@ async def update_email_campaign(
     text_body: str | None = None,
     cohort: dict[str, Any] | None = None,
     trigger: Trigger | None = None,
+    trigger_config: dict[str, Any] | None = None,
     schedule_at: str | None = None,
     cron: str | None = None,
     timezone: str | None = None,
     status: Literal['draft', 'paused'] | None = None,
 ) -> dict:
-    """Partial update of an email campaign (time, cohort, trigger, html, subject, …).
+    f"""Partial update of an email campaign (time, cohort, trigger, trigger_config, html, …).
 
     Cannot edit sending/cancelled campaigns. status may only be set to draft or paused
     here — use schedule/send/cancel tools for the other transitions.
+    {TRIGGER_DOC}
     """
     cid = _uuid(campaign_id, 'campaign_id')
     payload: dict[str, Any] = {}
@@ -137,6 +172,8 @@ async def update_email_campaign(
         payload['cohort'] = cohort
     if trigger is not None:
         payload['trigger'] = trigger
+    if trigger_config is not None:
+        payload['triggerConfig'] = trigger_config
     if schedule_at is not None:
         payload['scheduleAt'] = schedule_at
     if cron is not None:
@@ -204,11 +241,17 @@ async def schedule_email_campaign(
     timezone: str | None = None,
     confirm: bool = False,
 ) -> dict:
-    """Schedule a campaign for schedule_at (ISO) and/or a 5-field cron.
+    """Schedule (trigger=schedule) or arm (event triggers) a campaign.
 
     Two-step: confirm=false returns audience size and does nothing; confirm=true
-    marks the campaign scheduled. Cron example: "0 9 * * 1" = Mondays 09:00 in timezone.
-    A crontab runner fires due campaigns every minute.
+    marks the campaign scheduled/armed.
+
+    For trigger=schedule: pass schedule_at (ISO) and/or a 5-field cron
+    (e.g. "0 9 * * 1" = Mondays 09:00 in timezone). Runner fires every minute.
+
+    For event triggers (new_task_available, executor_idle, order_status,
+    assignment_*, user_*, email_verified): omit schedule_at/cron — confirm arms
+    the campaign so domain events / the idle scanner can deliver.
     """
     cid = _uuid(campaign_id, 'campaign_id')
     return await get_client().schedule_email_campaign(cid, {
@@ -245,7 +288,7 @@ async def send_email_campaign(
     read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=True,
 ))
 async def pause_email_campaign(campaign_id: str) -> dict:
-    """Pause a draft/scheduled campaign so the runner will not fire it."""
+    """Pause a draft/scheduled (armed) campaign so the runner/events will not fire it."""
     cid = _uuid(campaign_id, 'campaign_id')
     return {
         'status': 'PAUSED',

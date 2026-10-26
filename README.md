@@ -149,16 +149,32 @@ Email-кампании (нужны скоупы `emails:read` / `emails:write`):
 | Инструмент | Что делает |
 |---|---|
 | `list_email_campaigns` / `get_email_campaign` | Список и карточка кампании |
-| `create_email_campaign` / `update_email_campaign` | Черновик и частичные правки (HTML, subject, cohort, schedule, trigger) |
+| `create_email_campaign` / `update_email_campaign` | Черновик и частичные правки (HTML, subject, cohort, trigger, trigger_config) |
 | `preview_email_campaign_audience` | Count + sample по когорте |
 | `preview_email_campaign_html` | Dry-run рендер плейсхолдеров |
-| `schedule_email_campaign` / `send_email_campaign` | Расписание / отправка, двухшагово с `confirm` |
+| `schedule_email_campaign` / `send_email_campaign` | Расписание / arm события / отправка, двухшагово с `confirm` |
 | `pause_email_campaign` / `cancel_email_campaign` | Пауза / отмена |
 
 Когорта — JSON-фильтр (`role`, `status`, `notify_new_tasks`, окна `created_*` /
-`last_claim_*`, `never_claimed`, `project_id`, `user_ids`, `emails`, …). Триггер:
-`manual` или `schedule` (`schedule_at` и/или 5-полевой `cron`). Раннер
-`manage.py run_email_campaigns` в crontab каждую минуту.
+`last_claim_*`, `never_claimed`, `project_id`, `user_ids`, `emails`, …).
+
+Триггеры:
+
+| trigger | Когда | trigger_config |
+|---|---|---|
+| `manual` | только `send_email_campaign` | пусто |
+| `schedule` | `schedule_at` и/или 5-полевой `cron` | пусто |
+| `new_task_available` | заказ стал `open` | опц. `min_reward_cents`, `project_ids`, `order_types` |
+| `executor_idle` | сканер в том же crontab | **обяз.** `days_idle`; опц. `never_claimed_counts` |
+| `order_status` | переход заказа | **обяз.** `to`, `audience` (`customer\|executor\|both`) |
+| `assignment_claimed` | клейм | опц. `roles` |
+| `assignment_released` | сняли клейм | опц. `reasons`: `released\|expired\|cancelled` |
+| `user_registered` / `email_verified` / `user_approved` | регистрация / подтверждение / апрув | опц. `roles` |
+
+Event-кампании после `schedule_email_campaign(confirm=true)` остаются `scheduled`
+(armed) и ловят новых подходящих людей; Delivery `(campaign, user)` — не чаще
+раза на человека. Раннер `manage.py run_email_campaigns` каждую минуту шлёт due
+`schedule` и сканирует `executor_idle`.
 
 ### Деньги — в центах
 

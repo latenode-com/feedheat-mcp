@@ -66,11 +66,15 @@ async def test_create_posts_camel_case_payload():
         subject='Hi {{name}}',
         html_body='<p>x</p>',
         cohort={'never_claimed': True},
+        trigger='executor_idle',
+        trigger_config={'days_idle': 7},
     )
     assert result['status'] == 'CREATED'
     body = rec.json_body()
     assert body['htmlBody'] == '<p>x</p>'
     assert body['cohort'] == {'never_claimed': True}
+    assert body['trigger'] == 'executor_idle'
+    assert body['triggerConfig'] == {'days_idle': 7}
     assert rec.last.url.path.endswith('/api/admin/email-campaigns')
 
 
