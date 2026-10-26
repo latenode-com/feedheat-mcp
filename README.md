@@ -57,11 +57,13 @@ FEEDHEAT_API_KEY=fhk_ваш_ключ uvx --from git+https://github.com/latenode-
    начинает получать 401.
 3. Ключ умирает вместе с владельцем: если админа заблокировали или разжаловали,
    ключ перестаёт работать.
-4. Серверу нужны ровно **два** скоупа, а не три: `orders:read` (клиенты, проекты,
-   исполнители, заказы) и `orders:write` (создание, назначение, публикация, отмена).
-   Третий скоуп платформы, `users:read`, живёт на `/api/admin/users` — сервер туда не
-   ходит, **не выдавайте его**. Без `orders:write` сервер работает в режиме «только
-   чтение»: все инструменты записи будут отвечать 403 с объяснением.
+4. Скоупы сервера:
+   * `orders:read` — клиенты, проекты, исполнители, заказы;
+   * `orders:write` — создание, назначение, публикация, отмена заказов;
+   * `emails:read` / `emails:write` — email-кампании (CRUD, превью аудитории, send/schedule).
+   Скоуп `users:read` живёт на `/api/admin/users` — сервер туда не ходит, **не выдавайте
+   его**. Без `orders:write` / `emails:write` соответствующие инструменты записи отвечают
+   403.
 
 Ключ передаётся серверу **только через переменные окружения**, в аргументах командной
 строки его писать нельзя (видно в `ps`).
@@ -142,6 +144,22 @@ claude mcp add taskospot \
 | `open_order(order_id)` | Публикует админский черновик: `draft → open` |
 | `cancel_order(order_id)` | Отменяет заказ (undo для `create_order`), тоже с `confirm` |
 
+Email-кампании (нужны скоупы `emails:read` / `emails:write`):
+
+| Инструмент | Что делает |
+|---|---|
+| `list_email_campaigns` / `get_email_campaign` | Список и карточка кампании |
+| `create_email_campaign` / `update_email_campaign` | Черновик и частичные правки (HTML, subject, cohort, schedule, trigger) |
+| `preview_email_campaign_audience` | Count + sample по когорте |
+| `preview_email_campaign_html` | Dry-run рендер плейсхолдеров |
+| `schedule_email_campaign` / `send_email_campaign` | Расписание / отправка, двухшагово с `confirm` |
+| `pause_email_campaign` / `cancel_email_campaign` | Пауза / отмена |
+
+Когорта — JSON-фильтр (`role`, `status`, `notify_new_tasks`, окна `created_*` /
+`last_claim_*`, `never_claimed`, `project_id`, `user_ids`, `emails`, …). Триггер:
+`manual` или `schedule` (`schedule_at` и/или 5-полевой `cron`). Раннер
+`manage.py run_email_campaigns` в crontab каждую минуту.
+
 ### Деньги — в центах
 
 `reward_cents=500` — это **$5.00**. Это общий бюджет заказа, а не ставка за действие:
@@ -156,9 +174,10 @@ claude mcp add taskospot \
 
 ### Двухшаговое подтверждение
 
-`create_order`, `create_orders_batch` и `cancel_order` с `confirm=false` (по умолчанию)
-возвращают `status: CONFIRMATION_REQUIRED` и ничего не меняют. Модель обязана показать
-превью человеку и повторить вызов с `confirm=true`.
+`create_order`, `create_orders_batch`, `cancel_order`, `schedule_email_campaign` и
+`send_email_campaign` с `confirm=false` (по умолчанию) возвращают
+`status: CONFIRMATION_REQUIRED` и ничего не меняют. Модель обязана показать превью
+человеку и повторить вызов с `confirm=true`.
 
 * создание с `confirm=false` **не делает HTTP-запрос вообще** — только payload и стоимость;
 * отмена с `confirm=false` делает **один GET** заказа, чтобы показать, что именно исчезнет

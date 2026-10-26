@@ -40,7 +40,9 @@ server = MCPServer(
         'Admin access to Taskospot (Reddit promotion marketplace) on behalf of a real '
         'admin account. Read tools are free to call. Write tools create real, paid work for '
         'real people: always resolve ids with the read tools first, and never invent a UUID. '
-        'All money is in CENTS (reward_cents=500 means $5.00).'
+        'All money is in CENTS (reward_cents=500 means $5.00). '
+        'Email campaign tools (list/create/update/preview/schedule/send) need emails:read and '
+        'emails:write on the API key; send and schedule are two-step with confirm=true.'
     ),
 )
 
@@ -792,12 +794,18 @@ async def cancel_order(order_id: str, confirm: bool = False) -> dict:
 
 def main() -> None:
     """Точка входа консольного скрипта feedheat-mcp. Транспорт — stdio."""
+    # Импорт регистрирует email-инструменты на этом же server.
+    import feedheat_mcp.email_tools  # noqa: F401
+
     server.run(transport='stdio')
 
 
 if __name__ == '__main__':
     main()
 
+
+# Регистрация email-инструментов и при импорте модуля (HTTP-транспорт / тесты).
+import feedheat_mcp.email_tools  # noqa: E402,F401
 
 __all__ = [
     'ApiError',

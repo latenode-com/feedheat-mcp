@@ -277,6 +277,74 @@ class AdminClient:
             'POST', f'/api/orders/{order_id}/cancel', json={}, scope='orders:write',
         )
 
+    # --- Email-кампании -------------------------------------------------------
+
+    async def list_email_campaigns(self, *, status: str | None = None, limit: int = 50):
+        return await self.request(
+            'GET', '/api/admin/email-campaigns',
+            params={'status': status, 'limit': limit},
+            scope='emails:read',
+        )
+
+    async def get_email_campaign(self, campaign_id: str) -> dict:
+        return await self.request(
+            'GET', f'/api/admin/email-campaigns/{campaign_id}', scope='emails:read',
+        )
+
+    async def create_email_campaign(self, payload: dict) -> dict:
+        return await self.request(
+            'POST', '/api/admin/email-campaigns', json=payload, scope='emails:write',
+        )
+
+    async def update_email_campaign(self, campaign_id: str, payload: dict) -> dict:
+        return await self.request(
+            'PATCH', f'/api/admin/email-campaigns/{campaign_id}',
+            json=payload, scope='emails:write',
+        )
+
+    async def preview_email_campaign_audience(
+        self, campaign_id: str | None = None, *, cohort: dict | None = None, sample: int = 10,
+    ) -> dict:
+        if campaign_id:
+            return await self.request(
+                'POST', f'/api/admin/email-campaigns/{campaign_id}/preview-audience',
+                params={'sample': sample}, scope='emails:read',
+            )
+        return await self.request(
+            'POST', '/api/admin/email-campaigns/preview-audience',
+            json={'cohort': cohort or {}, 'sample': sample}, scope='emails:read',
+        )
+
+    async def preview_email_campaign_html(self, payload: dict) -> dict:
+        return await self.request(
+            'POST', '/api/admin/email-campaigns/preview-html',
+            json=payload, scope='emails:read',
+        )
+
+    async def schedule_email_campaign(self, campaign_id: str, payload: dict) -> dict:
+        return await self.request(
+            'POST', f'/api/admin/email-campaigns/{campaign_id}/schedule',
+            json=payload, scope='emails:write',
+        )
+
+    async def send_email_campaign(self, campaign_id: str, payload: dict) -> dict:
+        return await self.request(
+            'POST', f'/api/admin/email-campaigns/{campaign_id}/send',
+            json=payload, scope='emails:write',
+        )
+
+    async def pause_email_campaign(self, campaign_id: str) -> dict:
+        return await self.request(
+            'POST', f'/api/admin/email-campaigns/{campaign_id}/pause',
+            json={}, scope='emails:write',
+        )
+
+    async def cancel_email_campaign(self, campaign_id: str) -> dict:
+        return await self.request(
+            'POST', f'/api/admin/email-campaigns/{campaign_id}/cancel',
+            json={}, scope='emails:write',
+        )
+
 
 class CustomerClient(AdminClient):
     """Тот же транспорт, но ручки — клиентские (/api/orders, /api/projects).
