@@ -141,7 +141,8 @@ claude mcp add taskospot \
 | `create_order(...)` | Создаёт один заказ. Двухшагово: без `confirm=true` возвращает превью и не создаёт ничего |
 | `create_orders_batch(...)` | Масс-заказ по одному на исполнителя (`mass_comment` / `mass_post`), тоже с `confirm` |
 | `assign_order(order_id, executor_ids)` | Переназначает заказ (список заменяет назначение целиком) |
-| `open_order(order_id)` | Публикует админский черновик: `draft → open` |
+| `open_order(order_id)` | Публикует админский черновик / передержку: `draft\|holding → open` |
+| `hold_order(order_id)` | Временно снимает из пула: `open → holding` |
 | `cancel_order(order_id)` | Отменяет заказ (undo для `create_order`), тоже с `confirm` |
 
 Email-кампании (нужны скоупы `emails:read` / `emails:write`):

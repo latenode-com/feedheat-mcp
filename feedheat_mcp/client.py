@@ -271,6 +271,11 @@ class AdminClient:
             'POST', f'/api/admin/orders/{order_id}/open', json={}, scope='orders:write',
         )
 
+    async def hold_order(self, order_id: str) -> dict:
+        return await self.request(
+            'POST', f'/api/admin/orders/{order_id}/hold', json={}, scope='orders:write',
+        )
+
     async def cancel_order(self, order_id: str) -> dict:
         # Отмена живёт в общем роутере заказов (её умеет и заказчик), а не в /admin.
         return await self.request(

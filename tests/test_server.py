@@ -363,6 +363,13 @@ async def test_open_order_hits_the_open_endpoint():
     assert result['status'] == 'OPENED'
 
 
+async def test_hold_order_hits_the_hold_endpoint():
+    rec = use_client(json_response(order_payload(status='holding')))
+    result = await srv.hold_order(ORDER)
+    assert rec.last.url.path == f'/api/admin/orders/{ORDER}/hold'
+    assert result['status'] == 'HELD'
+
+
 async def test_cancel_preview_only_reads_and_never_cancels():
     rec = use_client(json_response(order_payload(status='open')))
     result = await srv.cancel_order(ORDER)

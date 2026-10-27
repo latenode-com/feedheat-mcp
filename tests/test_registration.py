@@ -9,7 +9,12 @@ from feedheat_mcp.server import server
 EXPECTED = {
     'list_clients', 'list_projects', 'list_executors', 'list_orders', 'get_order',
     'order_candidates', 'create_order', 'create_orders_batch', 'assign_order', 'open_order',
-    'cancel_order',
+    'hold_order', 'cancel_order',
+    # email_tools регистрируется импортом в server.py — иначе suite красный после #141.
+    'list_email_campaigns', 'get_email_campaign', 'create_email_campaign',
+    'update_email_campaign', 'preview_email_campaign_audience',
+    'preview_email_campaign_html', 'schedule_email_campaign',
+    'send_email_campaign', 'pause_email_campaign', 'cancel_email_campaign',
 }
 
 

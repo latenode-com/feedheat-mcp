@@ -726,6 +726,20 @@ async def open_order(order_id: str) -> dict:
 
 
 @server.tool(annotations=ToolAnnotations(
+    read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True,
+))
+async def hold_order(order_id: str) -> dict:
+    """Pull an open order out of the pool onto hold: open -> holding.
+
+    Temporary pause — rate and text stay, reverse with open_order(). Not the same as
+    unpublish (that goes to draft). Claimed work is refused (409).
+    """
+    oid = _uuid_str(order_id, 'order_id')
+    order = await get_client().hold_order(oid)
+    return {'status': 'HELD', 'order': _order_brief(order)}
+
+
+@server.tool(annotations=ToolAnnotations(
     read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=True,
 ))
 async def cancel_order(order_id: str, confirm: bool = False) -> dict:
